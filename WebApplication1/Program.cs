@@ -1,6 +1,7 @@
 using Dapper;
 using FluentValidation;
 using WebApplication1.BLL.Services;
+using WebApplication1.Config;
 using WebApplication1.DAL;
 using WebApplication1.DAL.Interfaces;
 using WebApplication1.DAL.Repositories;
@@ -13,10 +14,12 @@ DefaultTypeMap.MatchNamesWithUnderscores = true;
 builder.Services.AddScoped<UnitOfWork>();
 
 builder.Services.Configure<DbSettings>(builder.Configuration.GetSection(nameof(DbSettings)));
+builder.Services.Configure<RabbitMqSettings>(builder.Configuration.GetSection(nameof(RabbitMqSettings)));
 
 builder.Services.AddScoped<IOrderRepository, OrderRepository>();
 builder.Services.AddScoped<IOrderItemRepository, OrderItemRepository>();
 builder.Services.AddScoped<OrderService>();
+builder.Services.AddScoped<RabbitMqService>();
 
 builder.Services.AddValidatorsFromAssemblyContaining(typeof(Program));
 builder.Services.AddScoped<ValidatorFactory>();
