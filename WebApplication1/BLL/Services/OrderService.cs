@@ -1,11 +1,14 @@
+using Messages;
+using Microsoft.Extensions.Options;
 using WebApplication1.BLL.Models;
+using WebApplication1.Config;
 using WebApplication1.DAL;
 using WebApplication1.DAL.Interfaces;
 using WebApplication1.DAL.Models;
 
 namespace WebApplication1.BLL.Services;
 
-public class OrderService(UnitOfWork unitOfWork, IOrderRepository orderRepository, IOrderItemRepository orderItemRepository)
+public class OrderService(UnitOfWork unitOfWork, IOrderRepository orderRepository, IOrderItemRepository orderItemRepository, RabbitMqService _rabbitMqService, IOptions<RabbitMqSettings> rabbitMqSettings)
 {
     /// <summary>
     /// Метод создания заказов
@@ -57,6 +60,19 @@ public class OrderService(UnitOfWork unitOfWork, IOrderRepository orderRepositor
             var orderItemLookup = insertedOrderItems.ToLookup(x => x.OrderId);
 
             await transaction.CommitAsync(token);
+            
+            var messages = insertedOrders.Select(order => new OrderCreatedMessage
+            {
+                Id = order.Id,
+                CustomerId = order.CustomerId,
+                DeliveryAddress = order.DeliveryAddress,
+                TotalPriceCents = order.TotalPriceCents,
+                TotalPriceCurrency = order.TotalPriceCurrency,
+                CreatedAt = order.CreatedAt,
+                UpdatedAt = order.UpdatedAt,
+            }).ToArray();
+            
+            await _rabbitMqService.Publish(messages, rabbitMqSettings.Value.OrderCreatedQueue, token);
 
             return Map(insertedOrders, orderItemLookup);
         }
